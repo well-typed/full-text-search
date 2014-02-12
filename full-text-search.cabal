@@ -43,6 +43,10 @@ category:            Data, Text, NLP
 build-type:          Simple
 cabal-version:       >=1.10
 
+source-repository head
+  type:              darcs
+  location:          http://code.haskell.org/full-text-search/
+
 library
   exposed-modules:     Data.SearchEngine,
                        Data.SearchEngine.BM25F
