@@ -23,10 +23,13 @@ description:         An in-memory full text search engine library. It lets you
                      * In-memory but quite compact. It does not keep a copy of
                        your original documents.
                      .
+                     * Quick incremental index updates, making it possible to
+                       keep your text search in-sync with your data.
+                     .
                      It is independent of the document type, so you have to
                      write the document-specific parts: extracting search terms
-                     and any case-normalisation or stemming. This is quite
-                     easy using libraries such as
+                     and any stop words, case-normalisation or stemming. This
+                     is quite easy using libraries such as
                      <http://hackage.haskell.org/package/tokenize tokenize> and
                      <http://hackage.haskell.org/package/snowball snowball>.
                      .
