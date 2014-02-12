@@ -38,7 +38,7 @@ license:             BSD3
 license-file:        LICENSE
 author:              Duncan Coutts
 maintainer:          Duncan Coutts <duncan@well-typed.com>
-copyright:           2013-14 Duncan Coutts, 2014 Well-Typed LLP
+copyright:           2013-2014 Duncan Coutts, 2014 Well-Typed LLP
 category:            Data, Text, NLP
 build-type:          Simple
 cabal-version:       >=1.10
