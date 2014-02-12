@@ -1,0 +1,32 @@
+name:                full-text-search
+version:             0.2.0.0
+synopsis:            An in-memory full text search engine library
+description:         
+license:             BSD3
+license-file:        LICENSE
+author:              Duncan Coutts
+maintainer:          Duncan Coutts <duncan@well-typed.com>
+copyright:           2013-14 Duncan Coutts, 2014 Well-Typed LLP
+category:            Data, Text, NLP
+build-type:          Simple
+cabal-version:       >=1.10
+
+library
+  exposed-modules:     Data.SearchEngine,
+                       Data.SearchEngine.BM25F
+  other-modules:       Data.SearchEngine.DocFeatVals,
+                       Data.SearchEngine.TermBag,
+                       Data.SearchEngine.DocTermIds,
+                       Data.SearchEngine.SearchIndex,
+                       Data.SearchEngine.DocIdSet
+  other-extensions:    BangPatterns,
+                       NamedFieldPuns,
+                       RecordWildCards,
+                       GeneralizedNewtypeDeriving
+  build-depends:       base       >=4.5  && <4.7,
+                       array      >=0.4  && <0.5,
+                       vector     >=0.10 && <0.11,
+                       containers >=0.4  && <0.6,
+                       text       >=0.11 && <1.2
+  default-language:    Haskell2010
+  ghc-options:         -Wall
