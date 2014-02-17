@@ -12,6 +12,7 @@ module Data.SearchEngine.SearchIndex (
 
     docCount,
     lookupTerm,
+    lookupTermsByPrefix,
     lookupTermId,
     lookupDocId,
     lookupDocKey,
@@ -36,6 +37,7 @@ import Data.IntMap (IntMap)
 import qualified Data.IntMap as IntMap
 import qualified Data.Set as Set
 import Data.Text (Text)
+import qualified Data.Text as T
 import Data.List (foldl')
 
 import Control.Exception (assert)
@@ -150,6 +152,11 @@ lookupTerm SearchIndex{termMap} term =
     case Map.lookup term termMap of
       Nothing                         -> Nothing
       Just (TermInfo termid docidset) -> Just (termid, docidset)
+
+lookupTermsByPrefix :: SearchIndex key field feature -> Term -> [(TermId, DocIdSet)]
+lookupTermsByPrefix SearchIndex{termMap} term =
+    [ (termid, docidset)
+    | (TermInfo termid docidset) <- lookupPrefix term termMap ]
 
 lookupTermId :: SearchIndex key field feature -> TermId -> DocIdSet
 lookupTermId SearchIndex{termIdMap, termMap} termid =
@@ -390,4 +397,31 @@ deleteDocEntry :: Ord key => DocId -> key ->
 deleteDocEntry docid key si@SearchIndex{docIdMap, docKeyMap} =
      si { docIdMap  = IntMap.delete (fromEnum docid) docIdMap
         , docKeyMap = Map.delete key docKeyMap }
+
+--
+-- Data.Map utils
+--
+
+-- Data.Map does not support prefix lookups directly (unlike a trie)
+-- but we can implement it reasonably efficiently using split:
+
+-- | Lookup values for a range of keys (inclusive lower bound and exclusive
+-- upper bound)
+--
+lookupRange :: Ord k => (k, k) -> Map k v -> [v]
+lookupRange (lb, ub) m =
+  let (_, mv, gt)  = Map.splitLookup lb m
+      (between, _) = Map.split       ub gt
+   in case mv of
+        Just v  -> v : Map.elems between
+        Nothing ->     Map.elems between
+
+lookupPrefix :: Text -> Map Text v -> [v]
+lookupPrefix t _ | T.null t = []
+lookupPrefix t m = lookupRange (t, prefixUpperBound t) m
+
+prefixUpperBound :: Text -> Text
+prefixUpperBound = succLast . T.dropWhileEnd (== maxBound)
+  where
+    succLast t = T.init t `T.snoc` succ (T.last t)
 
