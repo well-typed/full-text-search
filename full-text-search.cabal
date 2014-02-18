@@ -50,6 +50,10 @@ source-repository head
   type:              darcs
   location:          http://code.haskell.org/full-text-search/
 
+flag build-search-demo
+  default:           False
+  description:       Build a little program illustrating the use of the library
+
 library
   exposed-modules:     Data.SearchEngine,
                        Data.SearchEngine.BM25F
@@ -69,3 +73,33 @@ library
                        text       >=0.11 && <1.2
   default-language:    Haskell2010
   ghc-options:         -Wall -funbox-strict-fields
+
+
+executable search-demo
+  main-is:             Main.hs
+  other-modules:       PackageSearch
+                       ExtractNameTerms
+                       ExtractDescriptionTerms
+                       PackageIndexUtils
+                       -- support code for package descriptions:
+                       HaddockHtml
+                       HaddockLex
+                       HaddockParse
+                       HaddockTypes
+  hs-source-dirs:      demo
+  if !flag(build-search-demo)
+    buildable:         False
+  else
+    build-depends:     full-text-search,
+                       base, text, containers, array,
+                       tokenize      == 0.1.*,
+                       snowball      == 1.0.*,
+                       transformers,
+                       split         == 0.2.*,
+                       Cabal         >= 1.14 && < 1.20,
+                       bytestring, filepath, directory, tar, time, mtl
+  build-tools:         alex, happy
+  default-language:    Haskell2010
+  other-extensions:    GeneralizedNewtypeDeriving
+  ghc-options:         -Wall
+
