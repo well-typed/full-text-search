@@ -12,6 +12,7 @@ module Data.SearchEngine.DocIdSet (
     insert,
     delete,
     union,
+    intersection,
     invariant,
   ) where
 
@@ -98,13 +99,13 @@ union :: DocIdSet -> DocIdSet -> DocIdSet
 union x y | null x = y
           | null y = x
 union (DocIdSet xs) (DocIdSet ys) =
-    DocIdSet (Vec.create (MVec.new sizeBound >>= writeMerged xs ys))
+    DocIdSet (Vec.create (MVec.new sizeBound >>= writeMergedUnion xs ys))
   where
     sizeBound = Vec.length xs + Vec.length ys
 
-writeMerged :: Vec.Vector DocId -> Vec.Vector DocId ->
-              MVec.MVector s DocId -> ST s (MVec.MVector s DocId)
-writeMerged xs0 ys0 out = do
+writeMergedUnion :: Vec.Vector DocId -> Vec.Vector DocId ->
+                    MVec.MVector s DocId -> ST s (MVec.MVector s DocId)
+writeMergedUnion xs0 ys0 out = do
     i <- go xs0 ys0 0
     return $! MVec.take i out
   where
@@ -115,12 +116,36 @@ writeMerged xs0 ys0 out = do
                          return (i + Vec.length xs)
       | otherwise   = let x = Vec.head xs; y = Vec.head ys
                       in case compare x y of
-                GT -> do MVec.write out i y
-                         go           xs  (Vec.tail ys) (i+1) 
-                EQ -> do MVec.write out i x
-                         go (Vec.tail xs) (Vec.tail ys) (i+1)
-                LT -> do MVec.write out i x   
-                         go (Vec.tail xs)           ys  (i+1)
+                          GT -> do MVec.write out i y
+                                   go           xs  (Vec.tail ys) (i+1)
+                          EQ -> do MVec.write out i x
+                                   go (Vec.tail xs) (Vec.tail ys) (i+1)
+                          LT -> do MVec.write out i x
+                                   go (Vec.tail xs)           ys  (i+1)
+
+intersection :: DocIdSet -> DocIdSet -> DocIdSet
+intersection x y | null x = empty
+              | null y = empty
+intersection (DocIdSet xs) (DocIdSet ys) =
+    DocIdSet (Vec.create (MVec.new sizeBound >>= writeMergedIntersection xs ys))
+  where
+    sizeBound = Vec.length xs + Vec.length ys
+
+writeMergedIntersection :: Vec.Vector DocId -> Vec.Vector DocId ->
+                           MVec.MVector s DocId -> ST s (MVec.MVector s DocId)
+writeMergedIntersection xs0 ys0 out = do
+    i <- go xs0 ys0 0
+    return $! MVec.take i out
+  where
+    go !xs !ys !i
+      | Vec.null xs = return i
+      | Vec.null ys = return i
+      | otherwise   = let x = Vec.head xs; y = Vec.head ys
+                      in case compare x y of
+                          GT ->    go           xs  (Vec.tail ys)  i
+                          EQ -> do MVec.write out i x
+                                   go (Vec.tail xs) (Vec.tail ys) (i+1)
+                          LT ->    go (Vec.tail xs)           ys   i
 
 
 -------------
