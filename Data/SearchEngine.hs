@@ -221,6 +221,18 @@ deleteDoc key se@SearchEngine{searchIndex} =
         updateCachedFieldLengths oldDoc Nothing $
           se { searchIndex = searchIndex' }
 
+-----------------------------
+
+-- | Execute a normal query. Find the documents in which one or more of
+-- the search terms appear and return them in ranked order.
+--
+-- The number of documents returned is limited by the 'paramResultsetSoftLimit'
+-- and 'paramResultsetHardLimit' paramaters. This also limits the cost of the
+-- query (which is primarily the cost of scoring each document).
+--
+-- The given terms are all assumed to be complete (as opposed to prefixes
+-- like with 'queryAutosuggest').
+--
 query :: (Ix field, Bounded field, Ix feature, Bounded feature) =>
          SearchEngine doc key field feature ->
          [Term] -> [key]
