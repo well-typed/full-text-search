@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, GeneralizedNewtypeDeriving #-}
 module Data.SearchEngine.TermBag (
-    TermId,
+    TermId, TermCount,
     TermBag,
     size,
     fromList,
@@ -16,7 +16,7 @@ import qualified Data.Vector.Unboxed.Base    as VecBase
 import qualified Data.Vector.Generic.Mutable as VecMut
 import Control.Monad.ST
 import qualified Data.Map as Map
-import Data.Word (Word32)
+import Data.Word (Word32, Word8)
 import Data.Bits
 import Data.List (sortBy, foldl')
 import Data.Function (on)
@@ -35,6 +35,7 @@ data TermBag = TermBag !Int !(Vec.Vector TermIdAndCount)
 
 -- We sneakily stuff both the TermId and the bag count into one 32bit word
 type TermIdAndCount = Word32
+type TermCount      = Word8
 
 -- Bottom 24 bits is the TermId, top 8 bits is the bag count
 termIdAndCount :: TermId -> Int -> TermIdAndCount
@@ -45,7 +46,7 @@ termIdAndCount (TermId termid) freq =
 getTermId :: TermIdAndCount -> TermId
 getTermId word = TermId (word .&. 0x00FFFFFF)
 
-getTermCount :: TermIdAndCount -> Int
+getTermCount :: TermIdAndCount -> TermCount
 getTermCount word = fromIntegral (word `shiftR` 24)
 
 
@@ -55,11 +56,11 @@ size (TermBag sz _) = sz
 elems :: TermBag -> [TermId]
 elems (TermBag _ vec) = map getTermId (Vec.toList vec)
 
-termCount :: TermBag -> TermId -> Int
+termCount :: TermBag -> TermId -> TermCount
 termCount (TermBag _ vec) =
     binarySearch 0 (Vec.length vec - 1)
   where
-    binarySearch :: Int -> Int -> TermId -> Int
+    binarySearch :: Int -> Int -> TermId -> TermCount
     binarySearch !a !b !key
       | a > b     = 0
       | otherwise =
@@ -87,7 +88,7 @@ fromList termids =
 -- Unfortunately vector does not directly support 2d arrays and array does
 -- not make it easy to trim arrays.
 --
-denseTable :: [TermBag] -> (Vec.Vector TermId, Vec.Vector Int)
+denseTable :: [TermBag] -> (Vec.Vector TermId, Vec.Vector TermCount)
 denseTable termbags = 
     (tids, tcts)
   where
@@ -108,7 +109,7 @@ denseTable termbags =
                  )
 
 writeMergedTermCounts :: Vec.Vector TermId -> Vec.Vector TermIdAndCount ->
-                         MVec.MVector s Int -> Int -> ST s ()
+                         MVec.MVector s TermCount -> Int -> ST s ()
 writeMergedTermCounts xs0 ys0 !out i0 =
     -- assume xs & ys are sorted, and ys contains a subset of xs
     go xs0 ys0 i0

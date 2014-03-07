@@ -43,7 +43,7 @@ fieldLength docterms field =
 -- | The frequency of a particular term in a field within the document.
 fieldTermCount :: (Ix field, Bounded field) => DocTermIds field -> field -> TermId -> Int
 fieldTermCount docterms field termid =
-    TermBag.termCount (getField docterms field) termid
+    fromIntegral (TermBag.termCount (getField docterms field) termid)
 
 fieldElems :: (Ix field, Bounded field) => DocTermIds field -> field -> [TermId]
 fieldElems docterms field =
