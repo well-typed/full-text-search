@@ -6,6 +6,8 @@ description:         An in-memory full text search engine library. It lets you
                      .
                      Features:
                      .
+                     * Keyword queries and auto-complete\/auto-suggest queries.
+                     .
                      * Can search over any type of \"document\".
                        (You explain how to extract search terms from them.)
                      .
