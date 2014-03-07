@@ -65,7 +65,8 @@ library
   other-extensions:    BangPatterns,
                        NamedFieldPuns,
                        RecordWildCards,
-                       GeneralizedNewtypeDeriving
+                       GeneralizedNewtypeDeriving,
+                       ScopedTypeVariables
   build-depends:       base       >=4.5  && <4.7,
                        array      >=0.4  && <0.5,
                        vector     >=0.10 && <0.11,

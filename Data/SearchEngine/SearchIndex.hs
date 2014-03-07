@@ -18,7 +18,8 @@ module Data.SearchEngine.SearchIndex (
     lookupDocKey,
     
     getTerm,
-    
+    getDocKey,
+
     invariant,
   ) where
 
@@ -193,6 +194,11 @@ getTerm SearchIndex{termIdMap} termId =
 getTermId :: SearchIndex key field feature -> Term -> TermId
 getTermId SearchIndex{termMap} term =
     case termMap Map.! term of TermInfo termid _ -> termid
+
+getDocKey :: SearchIndex key field feature -> DocId -> key
+getDocKey SearchIndex{docIdMap} docid =
+    case docIdMap IntMap.! fromEnum docid of
+      DocInfo dockey _ _ -> dockey
 
 getDocTermIds :: SearchIndex key field feature -> DocId -> DocTermIds field
 getDocTermIds SearchIndex{docIdMap} docid =

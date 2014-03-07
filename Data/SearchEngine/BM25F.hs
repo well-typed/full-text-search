@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards, BangPatterns, ScopedTypeVariables #-}
 
 -- | An implementation of BM25F ranking. See:
 --
@@ -16,6 +16,8 @@ module Data.SearchEngine.BM25F (
     Context(..),
     FeatureFunction(..),
     Doc(..),
+    -- ** Specialised variants
+    scoreTermsBulk,
 
     -- * Explaining the score
     Explanation(..),
@@ -23,6 +25,7 @@ module Data.SearchEngine.BM25F (
   ) where
 
 import Data.Ix
+import Data.Array.Unboxed
 
 data Context term field feature = Context {
          numDocsTotal     :: !Int,
@@ -117,6 +120,53 @@ applyFeatureFunction :: FeatureFunction -> (Float -> Float)
 applyFeatureFunction (LogarithmicFunction p1) = \fi -> log (p1 + fi)
 applyFeatureFunction (RationalFunction    p1) = \fi -> fi / (p1 + fi)
 applyFeatureFunction (SigmoidFunction  p1 p2) = \fi -> 1 / (p1 + exp (-fi * p2))
+
+
+-----------------------------
+-- Bulk scoring of many terms
+--
+
+-- | Most of the time we want to score several different documents for the same
+-- set of terms, but sometimes we want to score one document for many terms
+-- and in that case we can save a bit of work by doing it in bulk. It lets us
+-- calculate once and share things that depend only on the document, and not
+-- the term.
+--
+-- To take advantage of the sharing you must partially apply and name the
+-- per-doc score functon, e.g.
+--
+-- > let score :: term -> (field -> Int) -> Float
+-- >     score = BM25.bulkScorer ctx doc
+-- >  in sum [ score t (\f -> counts ! (t, f)) | t <- ts ]
+--
+scoreTermsBulk :: forall field term feature. (Ix field, Bounded field) =>
+                  Context term field feature ->
+                  Doc term field feature ->
+                  (term -> (field -> Int) -> Float)
+scoreTermsBulk ctx doc = 
+    -- This is just a rearrangement of weightedTermScore and
+    -- weightedDocTermFrequency above, with the doc-constant bits hoisted out.
+
+    \t tFreq ->
+    let !tf' = sum [ w!f * tf_f / _B!f
+                   | f <- range (minBound, maxBound)
+                   , let tf_f = fromIntegral (tFreq f)
+                   ]
+
+     in weightIDF ctx t *     tf'
+                         / (k1 + tf')
+  where
+    -- So long as the caller does the partial application thing then these
+    -- values can all be shared between many calls with different terms.
+
+    !k1 = paramK1 ctx
+    w, _B :: UArray field Float
+    !w  = array (minBound, maxBound)
+                [ (field, fieldWeight ctx field)
+                | field <- range (minBound, maxBound) ]
+    !_B = array (minBound, maxBound)
+                [ (field, lengthNorm ctx doc field)
+                | field <- range (minBound, maxBound) ]
 
 
 ------------------

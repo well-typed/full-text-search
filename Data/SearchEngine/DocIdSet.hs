@@ -12,6 +12,7 @@ module Data.SearchEngine.DocIdSet (
     insert,
     delete,
     union,
+    unions,
     intersection,
     invariant,
   ) where
@@ -25,6 +26,8 @@ import qualified Data.Vector.Generic.Mutable as VecMut
 import Control.Monad.ST
 import Data.Set (Set)
 import qualified Data.Set as Set
+import Data.List (foldl', sortBy)
+import Data.Function (on)
 
 import Prelude hiding (null)
 
@@ -94,6 +97,11 @@ binarySearch vec !a !b !key
           LT -> binarySearch vec a (mid-1) key
           EQ -> (mid, True)
           GT -> binarySearch vec (mid+1) b key
+
+unions :: [DocIdSet] -> DocIdSet
+unions = foldl' union empty
+         -- a bit more effecient if we merge small ones first
+       . sortBy (compare `on` size)
 
 union :: DocIdSet -> DocIdSet -> DocIdSet
 union x y | null x = y

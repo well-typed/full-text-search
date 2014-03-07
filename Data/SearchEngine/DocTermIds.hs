@@ -6,6 +6,7 @@ module Data.SearchEngine.DocTermIds (
     fieldTermCount,
     fieldElems,
     create,
+    denseTable,
     vecIndexIx,
     vecCreateIx,
   ) where
@@ -15,6 +16,7 @@ import qualified Data.SearchEngine.TermBag as TermBag
 
 import Data.Vector (Vector, (!))
 import qualified Data.Vector as Vec
+import qualified Data.Vector.Unboxed as UVec
 import Data.Ix (Ix)
 import qualified Data.Ix as Ix
 
@@ -46,6 +48,21 @@ fieldTermCount docterms field termid =
 fieldElems :: (Ix field, Bounded field) => DocTermIds field -> field -> [TermId]
 fieldElems docterms field =
     TermBag.elems (getField docterms field)
+
+-- | The 'DocTermIds' is really a sparse 2d array, and doing lookups with
+-- 'fieldTermCount' has a O(log n) cost. This function converts to a dense
+-- tabular representation which then enables linear scans.
+--
+denseTable :: (Ix field, Bounded field) => DocTermIds field ->
+              (Int, Int -> TermId, Int -> field -> Int)
+denseTable (DocTermIds fieldVec) =
+    let (!termids, !termcounts) = TermBag.denseTable (Vec.toList fieldVec)
+        !numTerms = UVec.length termids
+     in ( numTerms
+        , \i    -> termids UVec.! i
+        , \i ix -> let j = Ix.index (minBound, maxBound) ix
+                    in fromIntegral (termcounts UVec.! (j * numTerms + i))
+        )
 
 ---------------------------------
 -- Vector indexed by Ix Bounded
