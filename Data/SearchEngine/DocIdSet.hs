@@ -113,7 +113,7 @@ union (DocIdSet xs) (DocIdSet ys) =
 
 writeMergedUnion :: Vec.Vector DocId -> Vec.Vector DocId ->
                     MVec.MVector s DocId -> ST s (MVec.MVector s DocId)
-writeMergedUnion xs0 ys0 out = do
+writeMergedUnion xs0 ys0 !out = do
     i <- go xs0 ys0 0
     return $! MVec.take i out
   where
@@ -133,15 +133,15 @@ writeMergedUnion xs0 ys0 out = do
 
 intersection :: DocIdSet -> DocIdSet -> DocIdSet
 intersection x y | null x = empty
-              | null y = empty
+                 | null y = empty
 intersection (DocIdSet xs) (DocIdSet ys) =
     DocIdSet (Vec.create (MVec.new sizeBound >>= writeMergedIntersection xs ys))
   where
-    sizeBound = Vec.length xs + Vec.length ys
+    sizeBound = max (Vec.length xs) (Vec.length ys)
 
 writeMergedIntersection :: Vec.Vector DocId -> Vec.Vector DocId ->
                            MVec.MVector s DocId -> ST s (MVec.MVector s DocId)
-writeMergedIntersection xs0 ys0 out = do
+writeMergedIntersection xs0 ys0 !out = do
     i <- go xs0 ys0 0
     return $! MVec.take i out
   where
