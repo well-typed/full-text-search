@@ -16,7 +16,7 @@ module Data.SearchEngine.SearchIndex (
     lookupTermId,
     lookupDocId,
     lookupDocKey,
-    
+
     getTerm,
     getDocKey,
 
@@ -62,21 +62,24 @@ type Term = Text
 -- So the mappings we maintain can be depicted as:
 --
 -- >  Term   <-- 1:1 -->   TermId
--- >                         ^
--- >                         |
--- >                     many:many
--- >                         |
--- >                         v
+-- >          \              ^
+-- >           \             |
+-- >           1:many    many:many
+-- >                \        |
+-- >                 \->     v
 -- > DocKey  <-- 1:1 -->   DocId
 --
 -- For efficiency, these details are exposed in the interface. In particular
 -- the mapping from TermId to many DocIds is exposed via a 'DocIdSet',
 -- and the mapping from DocIds to TermIds is exposed via 'DocTermIds'.
 --
+-- The main reason we need to keep the DocId -> TermId is to allow for
+-- efficient incremental updates.
+--
 data SearchIndex key field feature = SearchIndex {
        -- the indexes
        termMap           :: !(Map Term TermInfo),
-       termIdMap         :: !(IntMap Term),
+       termIdMap         :: !(IntMap TermIdInfo),
        docIdMap          :: !(IntMap (DocInfo key field feature)),
        docKeyMap         :: !(Map key DocId),
 
@@ -88,6 +91,9 @@ data SearchIndex key field feature = SearchIndex {
 
 data TermInfo = TermInfo !TermId !DocIdSet
   deriving Show
+
+data TermIdInfo = TermIdInfo !Term !DocIdSet
+  deriving (Show, Eq)
 
 data DocInfo key field feature = DocInfo !key !(DocTermIds field)
                                               !(DocFeatVals feature)
@@ -115,12 +121,14 @@ checkInvariant si = assert (invariant si) si
 invariant :: (Ord key, Ix field, Bounded field) =>
              SearchIndex key field feature -> Bool
 invariant SearchIndex{termMap, termIdMap, docKeyMap, docIdMap} =
-      and [ IntMap.lookup (fromEnum termId) termIdMap == Just term
-          | (term, (TermInfo termId _)) <- Map.assocs termMap ]
+      and [ IntMap.lookup (fromEnum termId) termIdMap
+            == Just (TermIdInfo term docidset)
+          | (term, (TermInfo termId docidset)) <- Map.assocs termMap ]
   &&  and [ case Map.lookup term termMap of
-              Just (TermInfo termId' _) -> toEnum termId == termId'
-              Nothing                   -> False
-          | (termId, term) <- IntMap.assocs termIdMap ]
+              Just (TermInfo termId' docidset') -> toEnum termId == termId'
+                                                   && docidset == docidset'
+              Nothing                           -> False
+          | (termId, (TermIdInfo term docidset)) <- IntMap.assocs termIdMap ]
   &&  and [ case IntMap.lookup (fromEnum docId) docIdMap of
               Just (DocInfo docKey' _ _) -> docKey == docKey'
               Nothing                  -> False
@@ -154,19 +162,17 @@ lookupTerm SearchIndex{termMap} term =
       Nothing                         -> Nothing
       Just (TermInfo termid docidset) -> Just (termid, docidset)
 
-lookupTermsByPrefix :: SearchIndex key field feature -> Term -> [(TermId, DocIdSet)]
+lookupTermsByPrefix :: SearchIndex key field feature ->
+                       Term -> [(TermId, DocIdSet)]
 lookupTermsByPrefix SearchIndex{termMap} term =
     [ (termid, docidset)
     | (TermInfo termid docidset) <- lookupPrefix term termMap ]
 
 lookupTermId :: SearchIndex key field feature -> TermId -> DocIdSet
-lookupTermId SearchIndex{termIdMap, termMap} termid =
+lookupTermId SearchIndex{termIdMap} termid =
     case IntMap.lookup (fromEnum termid) termIdMap of
-      Nothing   -> error $ "lookupTermId: not found " ++ show termid
-      Just term ->
-        case Map.lookup term termMap of
-          Nothing                    -> error "lookupTermId: internal error"
-          Just (TermInfo _ docidset) -> docidset
+      Nothing -> error $ "lookupTermId: not found " ++ show termid
+      Just (TermIdInfo _ docidset) -> docidset
 
 lookupDocId :: SearchIndex key field feature ->
                DocId -> (key, DocTermIds field, DocFeatVals feature)
@@ -177,7 +183,8 @@ lookupDocId SearchIndex{docIdMap} docid =
   where
     errNotFound = error $ "lookupDocId: not found " ++ show docid
 
-lookupDocKey :: Ord key => SearchIndex key field feature -> key -> Maybe (DocTermIds field)
+lookupDocKey :: Ord key => SearchIndex key field feature ->
+                key -> Maybe (DocTermIds field)
 lookupDocKey SearchIndex{docKeyMap, docIdMap} key = do
     case Map.lookup key docKeyMap of
       Nothing    -> Nothing
@@ -189,7 +196,7 @@ lookupDocKey SearchIndex{docKeyMap, docIdMap} key = do
 
 getTerm :: SearchIndex key field feature -> TermId -> Term
 getTerm SearchIndex{termIdMap} termId =
-    termIdMap IntMap.! fromEnum termId
+    case termIdMap IntMap.! fromEnum termId of TermIdInfo term _ -> term
 
 getTermId :: SearchIndex key field feature -> Term -> TermId
 getTermId SearchIndex{termMap} term =
@@ -328,14 +335,22 @@ insertTermToDocIdEntry :: Term -> DocId ->
 insertTermToDocIdEntry term !docid si@SearchIndex{termMap, termIdMap, nextTermId} =
     case Map.lookup term termMap of
       Nothing ->
-        let !termInfo' = TermInfo nextTermId (DocIdSet.singleton docid)
+        let docIdSet'    = DocIdSet.singleton docid
+            !termInfo'   = TermInfo nextTermId docIdSet'
+            !termIdInfo' = TermIdInfo term     docIdSet'
          in si { termMap    = Map.insert term termInfo' termMap
-               , termIdMap  = IntMap.insert (fromEnum nextTermId) term termIdMap
+               , termIdMap  = IntMap.insert (fromEnum nextTermId)
+                                            termIdInfo' termIdMap
                , nextTermId = succ nextTermId }
 
       Just (TermInfo termId docIdSet) ->
-        let !termInfo' = TermInfo termId (DocIdSet.insert docid docIdSet)
-         in si { termMap = Map.insert term termInfo' termMap }
+        let docIdSet'    = DocIdSet.insert docid docIdSet
+            !termInfo'   = TermInfo termId docIdSet'
+            !termIdInfo' = TermIdInfo term docIdSet'
+         in si { termMap   = Map.insert term termInfo' termMap
+               , termIdMap = IntMap.insert (fromEnum termId)
+                                           termIdInfo' termIdMap
+               }
 
 -- | Add multiple entries into the 'Term' to 'DocId' mapping: many terms that
 -- map to the same document.
@@ -353,12 +368,16 @@ deleteTermToDocIdEntry term !docid si@SearchIndex{termMap, termIdMap} =
     case  Map.lookup term termMap of
       Nothing -> si
       Just (TermInfo termId docIdSet) ->
-        let docIdSet' = DocIdSet.delete docid docIdSet
-            termInfo' = TermInfo termId docIdSet'
+        let docIdSet'    = DocIdSet.delete docid docIdSet
+            !termInfo'   = TermInfo termId docIdSet'
+            !termIdInfo' = TermIdInfo term docIdSet'
         in if DocIdSet.null docIdSet'
             then si { termMap = Map.delete term termMap
                     , termIdMap = IntMap.delete (fromEnum termId) termIdMap }
-            else si { termMap = Map.insert term termInfo' termMap }
+            else si { termMap   = Map.insert term termInfo' termMap
+                    , termIdMap = IntMap.insert (fromEnum termId)
+                                                termIdInfo' termIdMap
+                    }
 
 -- | Delete multiple entries from the 'Term' to 'DocId' mapping: many terms
 -- that map to the same document.
