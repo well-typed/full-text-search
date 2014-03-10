@@ -60,10 +60,14 @@ flag build-search-demo
 library
   exposed-modules:     Data.SearchEngine,
                        Data.SearchEngine.BM25F
-  other-modules:       Data.SearchEngine.DocFeatVals,
+  other-modules:       Data.SearchEngine.Types,
+                       Data.SearchEngine.Update,
+                       Data.SearchEngine.Query,
+                       Data.SearchEngine.Autosuggest,
+                       Data.SearchEngine.SearchIndex,
+                       Data.SearchEngine.DocFeatVals,
                        Data.SearchEngine.TermBag,
                        Data.SearchEngine.DocTermIds,
-                       Data.SearchEngine.SearchIndex,
                        Data.SearchEngine.DocIdSet
   other-extensions:    BangPatterns,
                        NamedFieldPuns,
