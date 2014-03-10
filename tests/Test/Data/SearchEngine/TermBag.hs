@@ -12,7 +12,7 @@ instance Arbitrary TermBag where
   arbitrary = fromList `fmap` (listOf arbitrary)
 
 instance Arbitrary TermId where
-  arbitrary = TermId `fmap` choose (0,1)
+  arbitrary = TermId `fmap` choose (0,5)
 
 prop_invariant :: TermBag -> Bool
 prop_invariant = invariant

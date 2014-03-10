@@ -55,7 +55,8 @@ invariant :: TermBag -> Bool
 invariant (TermBag _ vec) =
     strictlyAscending (Vec.toList vec)
   where
-    strictlyAscending (a:xs@(b:_)) = a < b && strictlyAscending xs
+    strictlyAscending (a:xs@(b:_)) = getTermId a < getTermId b
+                                  && strictlyAscending xs
     strictlyAscending _  = True
 
 size :: TermBag -> Int
