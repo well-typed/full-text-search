@@ -48,55 +48,86 @@ queryAutosuggest :: (Ix field, Bounded field, Ix feature, Bounded feature) =>
                     [Term] -> Term -> ([(Term, Float)], [(key, Float)])
 queryAutosuggest se resultsFilter precedingTerms partialTerm =
 
-     step8_external
-   . step7_rank
-   . step6_scoreDs
-   . step5_scoreTs
-   . step4_cache
-   . step3_filter
-   . step2_process
-   $ step1_prep
+     step_external
+   . step_rank
+   . step_scoreDs
+   . step_scoreTs
+   . step_cache
+   . step_postfilterlimit
+   . step_filter
+   . step_prefilterlimit
+   . step_process
+   $ step_prep
        precedingTerms partialTerm
 
   where
     -- Construct the auto-suggest query from the query terms
-    step1_prep pre_ts t = mkAutosuggestQuery se pre_ts t
+    step_prep pre_ts t = mkAutosuggestQuery se pre_ts t
 
     -- Find the appropriate subset of ts and ds
     -- and an intermediate result that will be useful later:
     -- { (t, ds ∩ ds_t) | t ∈ ts, ds ∩ ds_t ≠ ∅ }
-    step2_process (ts, ds, pre_ts) = (ts', ds', tdss', pre_ts)
+    step_process (ts, ds, pre_ts) = (ts', ds', tdss', pre_ts)
       where
         (tdss', ts', ds') = processAutosuggestQuery se (ts, ds, pre_ts)
+
+    -- If the number of docs results is huge then we may not want to bother
+    -- and just return no results. Even the filtering of a huge number of
+    -- docs can be expensive.
+    step_prefilterlimit args@(_, ds, _, _)
+      | withinPrefilterLimit se ds = args
+      | otherwise                  = ([], DocIdSet.empty, [], [])
 
     -- Filter ds to those that are visible for this query
     -- and at the same time, do the docid -> docinfo lookup
     -- (needed at this step anyway to do the filter)
-    step3_filter (ts, ds, tdss, pre_ts) = (ts, ds_info, tdss, pre_ts)
+    step_filter (ts, ds, tdss, pre_ts) = (ts, ds_info, tdss, pre_ts)
       where
         ds_info = filterAutosuggestQuery se resultsFilter ds
 
+    -- If the number of docs results is huge then we may not want to bother
+    -- and just return no results. Scoring a large number of docs is expensive.
+    step_postfilterlimit args@(_, ds_info, _, _)
+      | withinPostfilterLimit se ds_info = args
+      | otherwise                        = ([], [], [], [])
+
     -- For all ds, calculate and cache a couple bits of info needed
     -- later for scoring completion terms and doc results
-    step4_cache (ts, ds_info, tdss, pre_ts) = (ds_info', tdss)
+    step_cache (ts, ds_info, tdss, pre_ts) = (ds_info', tdss)
       where
         ds_info' = cacheDocScoringInfo se ts ds_info pre_ts
 
     -- Score the completion terms
-    step5_scoreTs (ds_info, tdss) = (ds_info, tdss, ts_scored)
+    step_scoreTs (ds_info, tdss) = (ds_info, tdss, ts_scored)
       where
         ts_scored = scoreAutosuggestQueryCompletions tdss ds_info
 
     -- Score the doc results (making use of the completion scores)
-    step6_scoreDs (ds_info, tdss, ts_scored) = (ts_scored, ds_scored)
+    step_scoreDs (ds_info, tdss, ts_scored) = (ts_scored, ds_scored)
       where
         ds_scored = scoreAutosuggestQueryResults tdss ds_info ts_scored
 
     -- Rank the completions and results based on their scores
-    step7_rank = sortResults
+    step_rank = sortResults
 
     -- Convert from internal Ids into external forms: Term and doc key
-    step8_external = convertIdsToExternal se
+    step_external = convertIdsToExternal se
+
+
+-- We apply hard limits both before and after filtering.
+-- The post-filter limit is to avoid scoring 1000s of documents.
+-- The pre-filter limit is to avoid filtering 1000s of docs (which in some
+-- apps may be expensive itself)
+
+withinPrefilterLimit :: SearchEngine doc key field feature ->
+                        DocIdSet -> Bool
+withinPrefilterLimit SearchEngine{searchRankParams} ds =
+    DocIdSet.size ds <= paramAutosuggestPrefilterLimit searchRankParams
+
+withinPostfilterLimit :: SearchEngine doc key field feature ->
+                         [a] -> Bool
+withinPostfilterLimit SearchEngine{searchRankParams} ds_info =
+    length ds_info <= paramAutosuggestPostfilterLimit searchRankParams
 
 
 sortResults :: (Ord av, Ord bv) => ([(a,av)], [(b,bv)]) -> ([(a,av)], [(b,bv)])

@@ -48,9 +48,11 @@ data SearchRankParameters field feature = SearchRankParameters {
        paramFieldWeights       :: field -> Float,
        paramFeatureWeights     :: feature -> Float,
        paramFeatureFunctions   :: feature -> BM25F.FeatureFunction,
-       paramResultsetSoftLimit :: !Int,
-       paramResultsetHardLimit :: !Int,
-       paramAutosuggestLimit   :: !Int
+
+       paramResultsetSoftLimit   :: !Int,
+       paramResultsetHardLimit   :: !Int,
+       paramAutosuggestPrefilterLimit  :: !Int,
+       paramAutosuggestPostfilterLimit :: !Int
      }
 
 data SearchEngine doc key field feature = SearchEngine {

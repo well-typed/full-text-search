@@ -74,7 +74,9 @@ defaultSearchRankParameters =
       paramFeatureWeights     = noFeatures,
       paramFeatureFunctions   = noFeatures,
       paramResultsetSoftLimit = 200,
-      paramResultsetHardLimit = 400
+      paramResultsetHardLimit = 400,
+      paramAutosuggestPrefilterLimit  = 500,
+      paramAutosuggestPostfilterLimit = 500
     }
   where
     paramK1 :: Float
