@@ -1,12 +1,14 @@
 {-# LANGUAGE BangPatterns, GeneralizedNewtypeDeriving #-}
 module Data.SearchEngine.TermBag (
-    TermId, TermCount,
+    TermId(..), TermCount,
     TermBag,
     size,
     fromList,
+    toList,
     elems,
     termCount,
     denseTable,
+    invariant
   ) where
 
 import qualified Data.Vector.Unboxed         as Vec
@@ -49,12 +51,22 @@ getTermId word = TermId (word .&. 0x00FFFFFF)
 getTermCount :: TermIdAndCount -> TermCount
 getTermCount word = fromIntegral (word `shiftR` 24)
 
+invariant :: TermBag -> Bool
+invariant (TermBag _ vec) =
+    strictlyAscending (Vec.toList vec)
+  where
+    strictlyAscending (a:xs@(b:_)) = a < b && strictlyAscending xs
+    strictlyAscending _  = True
 
 size :: TermBag -> Int
 size (TermBag sz _) = sz
 
 elems :: TermBag -> [TermId]
 elems (TermBag _ vec) = map getTermId (Vec.toList vec)
+
+toList :: TermBag -> [(TermId, TermCount)]
+toList (TermBag _ vec) = [ (getTermId x, getTermCount x)
+                         | x <- Vec.toList vec ]
 
 termCount :: TermBag -> TermId -> TermCount
 termCount (TermBag _ vec) =

@@ -107,3 +107,22 @@ executable search-demo
   other-extensions:    GeneralizedNewtypeDeriving
   ghc-options:         -Wall
 
+test-suite qc-props
+  type:                exitcode-stdio-1.0
+  main-is:             Main.hs
+  hs-source-dirs:      . tests
+  build-depends:       base,
+                       array,
+                       vector,
+                       containers,
+                       text,
+                       QuickCheck       ==2.*,
+                       tasty            ==0.8.*,
+                       tasty-quickcheck ==0.8.*
+  other-modules:       Test.Data.SearchEngine.TermBag,
+                       Test.Data.SearchEngine.DocIdSet,
+                       Data.SearchEngine.DocTermIds,
+                       Data.SearchEngine.DocIdSet
+  default-language:    Haskell2010
+  ghc-options:         -Wall
+
