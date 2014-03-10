@@ -69,7 +69,7 @@ queryAutosuggest se resultsFilter precedingTerms partialTerm =
     -- { (t, ds ∩ ds_t) | t ∈ ts, ds ∩ ds_t ≠ ∅ }
     step_process (ts, ds, pre_ts) = (ts', ds', tdss', pre_ts)
       where
-        (tdss', ts', ds') = processAutosuggestQuery se (ts, ds, pre_ts)
+        (tdss', ts', ds') = processAutosuggestQuery (ts, ds, pre_ts)
 
     -- If the number of docs results is huge then we may not want to bother
     -- and just return no results. Even the filtering of a huge number of
@@ -160,17 +160,20 @@ convertIdsToExternal SearchEngine{searchIndex} (termids, docids) =
 -- preceding part of the query is empty. For efficiency we represent that
 -- case specially with Maybe.
 
-type AutosuggestQuery = ([TermId], Maybe DocIdSet, [TermId])
+type AutosuggestQuery = (Map.Map TermId DocIdSet, Maybe DocIdSet, [TermId])
 
 mkAutosuggestQuery :: (Ix field, Bounded field) =>
                       SearchEngine doc key field feature ->
                       [Term] -> Term -> AutosuggestQuery
-mkAutosuggestQuery SearchEngine{ searchIndex, searchConfig }
+mkAutosuggestQuery se@SearchEngine{ searchIndex }
                    precedingTerms partialTerm =
     (completionTerms, precedingDocHits, precedingTerms')
   where
-    completionTerms = map fst $ SI.lookupTermsByPrefix searchIndex partialTerm
-                      --TODO: need to take transformQueryTerm into account
+    completionTerms =
+      Map.unions
+        [ Map.fromList (SI.lookupTermsByPrefix searchIndex partialTerm')
+        | partialTerm' <- Query.expandTransformedQueryTerm se partialTerm
+        ]
 
     (precedingTerms', precedingDocHits)
       | null precedingTerms = ([], Nothing)
@@ -182,10 +185,9 @@ mkAutosuggestQuery SearchEngine{ searchIndex, searchConfig }
       unzip $ catMaybes
         [ SI.lookupTerm searchIndex t'
         | t  <- ts
-        , let transformForField = transformQueryTerm searchConfig t
-        , t' <- nub [ transformForField field
-                    | field <- range (minBound, maxBound) ]
+        , t' <- Query.expandTransformedQueryTerm se t
         ]
+
 
 
 -- From Bast and Weber:
@@ -202,11 +204,9 @@ mkAutosuggestQuery SearchEngine{ searchIndex, searchConfig }
 -- We will do this but additionally we will return all the non-empty
 -- intersections because they will be useful when scoring.
 
-processAutosuggestQuery :: SearchEngine doc key field feature ->
-                           AutosuggestQuery ->
+processAutosuggestQuery :: AutosuggestQuery ->
                            ([(TermId, DocIdSet)], [TermId], DocIdSet)
-processAutosuggestQuery SearchEngine{ searchIndex }
-                         (completionTerms, precedingDocHits, _) =
+processAutosuggestQuery (completionTerms, precedingDocHits, _) =
     ( completionTermAndDocSets
     , completionTerms'
     , allTermDocSet
@@ -224,9 +224,8 @@ processAutosuggestQuery SearchEngine{ searchIndex }
     completionTermAndDocSets :: [(TermId, DocIdSet)]
     completionTermAndDocSets =
       [ (t, ds_t')
-      | t <- completionTerms
-      , let ds_t  = SI.lookupTermId searchIndex t
-            ds_t' = case precedingDocHits of
+      | (t, ds_t) <- Map.toList completionTerms
+      , let ds_t' = case precedingDocHits of
                       Just ds -> ds `DocIdSet.intersection` ds_t
                       Nothing -> ds_t
       , not (DocIdSet.null ds_t')

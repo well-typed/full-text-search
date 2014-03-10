@@ -14,6 +14,7 @@ module Data.SearchEngine.Query (
     -- ** Utils used by autosuggest
     relevanceScore,
     indexDocToBM25Doc,
+    expandTransformedQueryTerm,
   ) where
 
 import Data.SearchEngine.Types
@@ -43,19 +44,13 @@ query :: (Ix field, Bounded field, Ix feature, Bounded feature) =>
          SearchEngine doc key field feature ->
          [Term] -> [key]
 query se@SearchEngine{ searchIndex,
-                       searchConfig     = SearchConfig{transformQueryTerm},
                        searchRankParams = SearchRankParameters{..} }
       terms =
 
   let -- Start by transforming/normalising all the query terms.
       -- This can be done differently for each field we search by.
       lookupTerms :: [Term]
-      lookupTerms = [ term'
-                    | term  <- terms
-                    , let transformForField = transformQueryTerm term
-                    , term' <- nub [ transformForField field
-                                   | field <- range (minBound, maxBound) ]
-                    ]
+      lookupTerms = concatMap (expandTransformedQueryTerm se) terms
 
       -- Then we look up all the normalised terms in the index.
       rawresults :: [Maybe (TermId, DocIdSet)]
@@ -90,6 +85,20 @@ query se@SearchEngine{ searchIndex,
       -- make the scoring use the appropriate termid for each field, but to
       -- consider them the "same" term.
    in rankResults se termids (DocIdSet.toList unrankedResults)
+
+-- | Before looking up a term in the main index we need to normalise it
+-- using the 'transformQueryTerm'. Of course the transform can be different
+-- for different fields, so we have to collect all the forms (eliminating
+-- duplicates).
+--
+expandTransformedQueryTerm :: (Ix field, Bounded field) =>
+                              SearchEngine doc key field feature ->
+                              Term -> [Term]
+expandTransformedQueryTerm SearchEngine{searchConfig} term =
+    nub [ transformForField field
+        | let transformForField = transformQueryTerm searchConfig term
+        , field <- range (minBound, maxBound) ]
+
 
 rankResults :: (Ix field, Bounded field, Ix feature, Bounded feature) =>
                SearchEngine doc key field feature ->
