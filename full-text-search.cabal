@@ -47,7 +47,7 @@ author:              Duncan Coutts
 maintainer:          Duncan Coutts <duncan@well-typed.com>
 copyright:           2013-2014 Duncan Coutts, 2014 Well-Typed LLP,
                      2014 IRIS Connect Ltd.
-category:            Data, Text, Natural Language Processing
+category:            Data, Text, Search
 build-type:          Simple
 cabal-version:       >=1.10
 extra-source-files:  changelog
