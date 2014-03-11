@@ -35,9 +35,11 @@ description:         An in-memory full text search engine library. It lets you
                      <http://hackage.haskell.org/package/tokenize tokenize> and
                      <http://hackage.haskell.org/package/snowball snowball>.
                      .
-                     For an example, see the code for the
+                     The source package includes a demo to illustrate how to
+                     use the library. The demo is a simplified version of how
+                     the library is used in the
                      <http://hackage.haskell.org/package/hackage-server hackage-server>
-                     where it is used for the package search feature.
+                     where it provides the backend for the package search feature.
 
 license:             BSD3
 license-file:        LICENSE
