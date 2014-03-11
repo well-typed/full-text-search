@@ -1,0 +1,19 @@
+0.2.1.0 Duncan Coutts <duncan@well-typed.com> March 2014
+        * Add auto-complete / auto-suggest feature
+        * Add demo program
+        * Moved QC props into a separate test suite
+        * Work sponsored by IRIS Connect Ltd.
+
+0.2.0.0 Duncan Coutts <duncan@well-typed.com> Feb 2014
+        * Initial version as a separate library
+
+0.1.1.0 Duncan Coutts <duncan@community.haskell.org> Nov 2013
+        * Add "explain" mode for query
+        * Add non-term feature scores
+
+0.1.0.1 Duncan Coutts <duncan@community.haskell.org> Sept 2013
+        * Fix bug in index update (thanks to Matthew Gruen)
+
+0.1.0.0 Duncan Coutts <duncan@community.haskell.org> July 2013
+        * Initial version (included in hackage-server)
+
