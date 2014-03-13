@@ -8,7 +8,6 @@ module Data.SearchEngine.DocIdSet (
     singleton,
     fromList,
     toList,
-    toSet,
     insert,
     delete,
     union,
@@ -24,7 +23,6 @@ import qualified Data.Vector.Generic.Base    as VecGen
 import qualified Data.Vector.Unboxed.Base    as VecBase
 import qualified Data.Vector.Generic.Mutable as VecMut
 import Control.Monad.ST
-import Data.Set (Set)
 import qualified Data.Set as Set
 import Data.List (foldl', sortBy)
 import Data.Function (on)
@@ -66,9 +64,6 @@ fromList = DocIdSet . Vec.fromList . Set.toAscList . Set.fromList
 
 toList ::  DocIdSet -> [DocId]
 toList (DocIdSet vec) = Vec.toList vec
-
-toSet ::  DocIdSet -> Set DocId
-toSet (DocIdSet vec) = Set.fromDistinctAscList (Vec.toList vec)
 
 insert :: DocId -> DocIdSet -> DocIdSet
 insert x (DocIdSet vec) =
