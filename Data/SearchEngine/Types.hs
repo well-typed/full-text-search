@@ -112,7 +112,7 @@ cacheBM25Context
 -----------------------------
 
 data NoFeatures = NoFeatures
-  deriving (Eq, Ord, Bounded)
+  deriving (Eq, Ord, Bounded, Show)
 
 instance Ix NoFeatures where
   range   _   = []
