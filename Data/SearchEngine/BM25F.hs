@@ -87,8 +87,14 @@ weightedDocTermFrequency ctx doc t =
         , let w_f  = fieldWeight ctx field
               tf_f = fromIntegral (docFieldTermFrequency doc field t)
               _B_f = lengthNorm ctx doc field
+        , not (isNaN _B_f)
         ]
-
+    -- When the avgFieldLength is 0 we have a field which is empty for all
+    -- documents. Unfortunately it leads to a NaN because the
+    -- docFieldTermFrequency will also be 0 so we get 0/0. What we want to
+    -- do in this situation is have that field contribute nothing to the
+    -- score. The simplest way to achieve that is to skip if _B_f is NaN.
+    -- So I think this is fine and not an ugly hack.
 
 lengthNorm :: Context term field feature ->
               Doc term field feature -> field -> Float
@@ -151,6 +157,8 @@ scoreTermsBulk ctx doc =
     let !tf' = sum [ w!f * tf_f / _B!f
                    | f <- range (minBound, maxBound)
                    , let tf_f = fromIntegral (tFreq f)
+                         _B_f = _B!f
+                   , not (isNaN _B_f)
                    ]
 
      in weightIDF ctx t *     tf'
