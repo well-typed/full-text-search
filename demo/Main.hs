@@ -55,11 +55,11 @@ main = do
           t <- T.getLine
           unless (T.null t) $ do
             putStrLn "Ranked results:"
-            let rankedResults = query searchengine (T.words t)
+            let rankedResults = queryExplain searchengine (T.words t)
 
             putStr $ unlines
-              [ {-show rank ++ ": " ++ -}display pkgname
-              | ({-rank, -}pkgname) <- take 10 rankedResults ]
+              [ show (overallScore explanation) ++ ": " ++ display pkgname
+              | (explanation, pkgname) <- take 10 rankedResults ]
 
             loop
     return ()
