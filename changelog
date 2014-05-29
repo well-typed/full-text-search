@@ -1,3 +1,7 @@
+0.2.1.1 Duncan Coutts <duncan@well-typed.com> May 2014
+        * Fix for NaN scores with a doc field that is empty for all docs
+        * Add instance Show NoFeatures
+
 0.2.1.0 Duncan Coutts <duncan@well-typed.com> March 2014
         * Add auto-complete / auto-suggest feature
         * Add demo program
