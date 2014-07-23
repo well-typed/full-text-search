@@ -1,3 +1,6 @@
+0.2.1.2 Adam Gundry <adam@well-typed.com> July 2014
+        * Compatibility with GHC 7.8 (no API changes)
+
 0.2.1.1 Duncan Coutts <duncan@well-typed.com> May 2014
         * Fix for NaN scores with a doc field that is empty for all docs
         * Add instance Show NoFeatures

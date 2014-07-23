@@ -1,5 +1,5 @@
 name:                full-text-search
-version:             0.2.1.1
+version:             0.2.1.2
 synopsis:            In-memory full text search engine
 description:         An in-memory full text search engine library. It lets you
                      run full-text queries on a collection of your documents.
