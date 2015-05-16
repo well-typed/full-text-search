@@ -1,3 +1,6 @@
+0.2.1.3 Duncan Coutts <duncan@well-typed.com> May 2015
+        * Compatibility with GHC 7.10 (no API changes)
+
 0.2.1.2 Adam Gundry <adam@well-typed.com> July 2014
         * Compatibility with GHC 7.8 (no API changes)
 
