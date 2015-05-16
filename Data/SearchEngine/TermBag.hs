@@ -1,6 +1,7 @@
-{-# LANGUAGE BangPatterns, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE BangPatterns, GeneralizedNewtypeDeriving, MultiParamTypeClasses,
+             TypeFamilies #-}
 module Data.SearchEngine.TermBag (
-    TermId(..), TermCount,
+    TermId(TermId), TermCount,
     TermBag,
     size,
     fromList,
@@ -13,20 +14,18 @@ module Data.SearchEngine.TermBag (
 
 import qualified Data.Vector.Unboxed         as Vec
 import qualified Data.Vector.Unboxed.Mutable as MVec
-import qualified Data.Vector.Generic.Base    as VecGen
-import qualified Data.Vector.Unboxed.Base    as VecBase
-import qualified Data.Vector.Generic.Mutable as VecMut
+import qualified Data.Vector.Generic         as GVec
+import qualified Data.Vector.Generic.Mutable as GMVec
 import Control.Monad.ST
+import Control.Monad (liftM)
 import qualified Data.Map as Map
 import Data.Word (Word32, Word8)
 import Data.Bits
 import Data.List (sortBy, foldl')
 import Data.Function (on)
 
-newtype TermId = TermId Word32
-  deriving (Eq, Ord, Show, Enum,
-            Vec.Unbox, VecGen.Vector VecBase.Vector,
-            VecMut.MVector VecBase.MVector)
+newtype TermId = TermId { unTermId :: Word32 }
+  deriving (Eq, Ord, Show, Enum)
 
 instance Bounded TermId where
   minBound = TermId 0
@@ -207,3 +206,57 @@ writeMergedUnion3 xs0 ys0 !out = do
                                    go (Vec.tail xs) (Vec.tail ys) (i+1)
                           LT -> do MVec.write out i x
                                    go (Vec.tail xs)           ys  (i+1)
+
+------------------------------------------------------------------------------
+-- verbose Unbox instances
+--
+
+instance MVec.Unbox TermId
+
+newtype instance MVec.MVector s TermId = MV_TermId (MVec.MVector s Word32)
+
+instance GMVec.MVector MVec.MVector TermId where
+    basicLength          (MV_TermId v) = GMVec.basicLength v
+    basicUnsafeSlice i l (MV_TermId v) = MV_TermId (GMVec.basicUnsafeSlice i l v)
+    basicUnsafeNew     l              = MV_TermId `liftM` GMVec.basicUnsafeNew l
+    basicUnsafeReplicate l x          = MV_TermId `liftM` GMVec.basicUnsafeReplicate l (unTermId x)
+    basicUnsafeRead  (MV_TermId v) i   = TermId `liftM`    GMVec.basicUnsafeRead v i
+    basicUnsafeWrite (MV_TermId v) i x = GMVec.basicUnsafeWrite v i (unTermId x)
+    basicClear       (MV_TermId v)     = GMVec.basicClear v
+    basicSet         (MV_TermId v) x   = GMVec.basicSet v (unTermId x)
+    basicUnsafeGrow  (MV_TermId v) l   = MV_TermId `liftM` GMVec.basicUnsafeGrow v l
+    basicUnsafeCopy  (MV_TermId v) (MV_TermId v') = GMVec.basicUnsafeCopy v v'
+    basicUnsafeMove  (MV_TermId v) (MV_TermId v') = GMVec.basicUnsafeMove v v'
+    basicOverlaps    (MV_TermId v) (MV_TermId v') = GMVec.basicOverlaps   v v'
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicOverlaps #-}
+    {-# INLINE basicUnsafeNew #-}
+    {-# INLINE basicUnsafeReplicate #-}
+    {-# INLINE basicUnsafeRead #-}
+    {-# INLINE basicUnsafeWrite #-}
+    {-# INLINE basicClear #-}
+    {-# INLINE basicSet #-}
+    {-# INLINE basicUnsafeCopy #-}
+    {-# INLINE basicUnsafeMove #-}
+    {-# INLINE basicUnsafeGrow #-}
+
+newtype instance Vec.Vector TermId = V_TermId (Vec.Vector Word32)
+
+instance GVec.Vector Vec.Vector TermId where
+    basicUnsafeFreeze (MV_TermId mv)  = V_TermId  `liftM` GVec.basicUnsafeFreeze mv
+    basicUnsafeThaw   (V_TermId  v)   = MV_TermId `liftM` GVec.basicUnsafeThaw v
+    basicLength       (V_TermId  v)   = GVec.basicLength v
+    basicUnsafeSlice i l (V_TermId v) = V_TermId (GVec.basicUnsafeSlice i l v)
+    basicUnsafeIndexM (V_TermId  v) i = TermId `liftM` GVec.basicUnsafeIndexM v i
+    basicUnsafeCopy   (MV_TermId mv)
+                      (V_TermId  v)   = GVec.basicUnsafeCopy mv v
+    elemseq           (V_TermId  v) x = GVec.elemseq v (unTermId x)
+    {-# INLINE basicUnsafeFreeze #-}
+    {-# INLINE basicUnsafeThaw #-}
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicUnsafeIndexM #-}
+    {-# INLINE basicUnsafeCopy #-}
+    {-# INLINE elemseq #-}
+

@@ -1,6 +1,7 @@
-{-# LANGUAGE BangPatterns, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE BangPatterns, GeneralizedNewtypeDeriving, MultiParamTypeClasses,
+             TypeFamilies #-}
 module Data.SearchEngine.DocIdSet (
-    DocId(..),
+    DocId(DocId),
     DocIdSet(..),
     null,
     size,
@@ -19,10 +20,10 @@ module Data.SearchEngine.DocIdSet (
 import Data.Word
 import qualified Data.Vector.Unboxed         as Vec
 import qualified Data.Vector.Unboxed.Mutable as MVec
-import qualified Data.Vector.Generic.Base    as VecGen
-import qualified Data.Vector.Unboxed.Base    as VecBase
-import qualified Data.Vector.Generic.Mutable as VecMut
+import qualified Data.Vector.Generic         as GVec
+import qualified Data.Vector.Generic.Mutable as GMVec
 import Control.Monad.ST
+import Control.Monad (liftM)
 import qualified Data.Set as Set
 import Data.List (foldl', sortBy)
 import Data.Function (on)
@@ -30,10 +31,8 @@ import Data.Function (on)
 import Prelude hiding (null)
 
 
-newtype DocId = DocId Word32
-  deriving (Eq, Ord, Show, Enum, Bounded, Vec.Unbox,
-            VecGen.Vector VecBase.Vector,
-            VecMut.MVector VecBase.MVector)
+newtype DocId = DocId { unDocId :: Word32 }
+  deriving (Eq, Ord, Show, Enum, Bounded)
 
 newtype DocIdSet = DocIdSet (Vec.Vector DocId)
   deriving (Eq, Show)
@@ -147,4 +146,57 @@ writeMergedIntersection xs0 ys0 !out = do
                           EQ -> do MVec.write out i x
                                    go (Vec.tail xs) (Vec.tail ys) (i+1)
                           LT ->    go (Vec.tail xs)           ys   i
+
+------------------------------------------------------------------------------
+-- verbose Unbox instances
+--
+
+instance MVec.Unbox DocId
+
+newtype instance MVec.MVector s DocId = MV_DocId (MVec.MVector s Word32)
+
+instance GMVec.MVector MVec.MVector DocId where
+    basicLength          (MV_DocId v) = GMVec.basicLength v
+    basicUnsafeSlice i l (MV_DocId v) = MV_DocId (GMVec.basicUnsafeSlice i l v)
+    basicUnsafeNew     l              = MV_DocId `liftM` GMVec.basicUnsafeNew l
+    basicUnsafeReplicate l x          = MV_DocId `liftM` GMVec.basicUnsafeReplicate l (unDocId x)
+    basicUnsafeRead  (MV_DocId v) i   = DocId `liftM`    GMVec.basicUnsafeRead v i
+    basicUnsafeWrite (MV_DocId v) i x = GMVec.basicUnsafeWrite v i (unDocId x)
+    basicClear       (MV_DocId v)     = GMVec.basicClear v
+    basicSet         (MV_DocId v) x   = GMVec.basicSet v (unDocId x)
+    basicUnsafeGrow  (MV_DocId v) l   = MV_DocId `liftM` GMVec.basicUnsafeGrow v l
+    basicUnsafeCopy  (MV_DocId v) (MV_DocId v') = GMVec.basicUnsafeCopy v v'
+    basicUnsafeMove  (MV_DocId v) (MV_DocId v') = GMVec.basicUnsafeMove v v'
+    basicOverlaps    (MV_DocId v) (MV_DocId v') = GMVec.basicOverlaps   v v'
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicOverlaps #-}
+    {-# INLINE basicUnsafeNew #-}
+    {-# INLINE basicUnsafeReplicate #-}
+    {-# INLINE basicUnsafeRead #-}
+    {-# INLINE basicUnsafeWrite #-}
+    {-# INLINE basicClear #-}
+    {-# INLINE basicSet #-}
+    {-# INLINE basicUnsafeCopy #-}
+    {-# INLINE basicUnsafeMove #-}
+    {-# INLINE basicUnsafeGrow #-}
+
+newtype instance Vec.Vector DocId = V_DocId (Vec.Vector Word32)
+
+instance GVec.Vector Vec.Vector DocId where
+    basicUnsafeFreeze (MV_DocId mv)  = V_DocId  `liftM` GVec.basicUnsafeFreeze mv
+    basicUnsafeThaw   (V_DocId  v)   = MV_DocId `liftM` GVec.basicUnsafeThaw v
+    basicLength       (V_DocId  v)   = GVec.basicLength v
+    basicUnsafeSlice i l (V_DocId v) = V_DocId (GVec.basicUnsafeSlice i l v)
+    basicUnsafeIndexM (V_DocId  v) i = DocId `liftM` GVec.basicUnsafeIndexM v i
+    basicUnsafeCopy   (MV_DocId mv)
+                      (V_DocId  v)   = GVec.basicUnsafeCopy mv v
+    elemseq           (V_DocId  v) x = GVec.elemseq v (unDocId x)
+    {-# INLINE basicUnsafeFreeze #-}
+    {-# INLINE basicUnsafeThaw #-}
+    {-# INLINE basicLength #-}
+    {-# INLINE basicUnsafeSlice #-}
+    {-# INLINE basicUnsafeIndexM #-}
+    {-# INLINE basicUnsafeCopy #-}
+    {-# INLINE elemseq #-}
 
