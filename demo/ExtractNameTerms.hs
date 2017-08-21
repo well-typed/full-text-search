@@ -13,6 +13,7 @@ import Data.List.Split hiding (Splitter)
 import Data.Maybe (maybeToList)
 
 import Data.Functor.Identity
+import Control.Applicative
 import Control.Monad
 import Control.Monad.List
 import Control.Monad.Writer
@@ -57,7 +58,7 @@ extractPackageNameTerms pkgname =
     get >>= emit
 
 newtype Split a = Split (StateT String (ListT (WriterT [String] Identity)) a)
-  deriving (Monad, MonadPlus, MonadState String)
+  deriving (Functor, Applicative, Alternative, Monad, MonadPlus, MonadState String)
 
 emit :: String -> Split ()
 emit x = Split (lift (lift (tell [x])))
