@@ -159,6 +159,7 @@ instance GMVec.MVector MVec.MVector DocId where
     basicLength          (MV_DocId v) = GMVec.basicLength v
     basicUnsafeSlice i l (MV_DocId v) = MV_DocId (GMVec.basicUnsafeSlice i l v)
     basicUnsafeNew     l              = MV_DocId `liftM` GMVec.basicUnsafeNew l
+    basicInitialize      (MV_DocId v) = GMVec.basicInitialize v
     basicUnsafeReplicate l x          = MV_DocId `liftM` GMVec.basicUnsafeReplicate l (unDocId x)
     basicUnsafeRead  (MV_DocId v) i   = DocId `liftM`    GMVec.basicUnsafeRead v i
     basicUnsafeWrite (MV_DocId v) i x = GMVec.basicUnsafeWrite v i (unDocId x)
@@ -172,6 +173,7 @@ instance GMVec.MVector MVec.MVector DocId where
     {-# INLINE basicUnsafeSlice #-}
     {-# INLINE basicOverlaps #-}
     {-# INLINE basicUnsafeNew #-}
+    {-# INLINE basicInitialize #-}
     {-# INLINE basicUnsafeReplicate #-}
     {-# INLINE basicUnsafeRead #-}
     {-# INLINE basicUnsafeWrite #-}
@@ -199,4 +201,3 @@ instance GVec.Vector Vec.Vector DocId where
     {-# INLINE basicUnsafeIndexM #-}
     {-# INLINE basicUnsafeCopy #-}
     {-# INLINE elemseq #-}
-

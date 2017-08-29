@@ -101,7 +101,7 @@ fromList termids =
 -- not make it easy to trim arrays.
 --
 denseTable :: [TermBag] -> (Vec.Vector TermId, Vec.Vector TermCount)
-denseTable termbags = 
+denseTable termbags =
     (tids, tcts)
   where
     -- First merge the TermIds into one array
@@ -218,8 +218,9 @@ newtype instance MVec.MVector s TermId = MV_TermId (MVec.MVector s Word32)
 instance GMVec.MVector MVec.MVector TermId where
     basicLength          (MV_TermId v) = GMVec.basicLength v
     basicUnsafeSlice i l (MV_TermId v) = MV_TermId (GMVec.basicUnsafeSlice i l v)
-    basicUnsafeNew     l              = MV_TermId `liftM` GMVec.basicUnsafeNew l
-    basicUnsafeReplicate l x          = MV_TermId `liftM` GMVec.basicUnsafeReplicate l (unTermId x)
+    basicUnsafeNew     l               = MV_TermId `liftM` GMVec.basicUnsafeNew l
+    basicInitialize      (MV_TermId v) = GMVec.basicInitialize v
+    basicUnsafeReplicate l x           = MV_TermId `liftM` GMVec.basicUnsafeReplicate l (unTermId x)
     basicUnsafeRead  (MV_TermId v) i   = TermId `liftM`    GMVec.basicUnsafeRead v i
     basicUnsafeWrite (MV_TermId v) i x = GMVec.basicUnsafeWrite v i (unTermId x)
     basicClear       (MV_TermId v)     = GMVec.basicClear v
@@ -232,6 +233,7 @@ instance GMVec.MVector MVec.MVector TermId where
     {-# INLINE basicUnsafeSlice #-}
     {-# INLINE basicOverlaps #-}
     {-# INLINE basicUnsafeNew #-}
+    {-# INLINE basicInitialize #-}
     {-# INLINE basicUnsafeReplicate #-}
     {-# INLINE basicUnsafeRead #-}
     {-# INLINE basicUnsafeWrite #-}
@@ -259,4 +261,3 @@ instance GVec.Vector Vec.Vector TermId where
     {-# INLINE basicUnsafeIndexM #-}
     {-# INLINE basicUnsafeCopy #-}
     {-# INLINE elemseq #-}
-
