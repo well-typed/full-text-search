@@ -1,3 +1,6 @@
+0.2.1.4 Mikolaj Konarski <mikolaj@well-typed.com> August 2017
+        * Compatibility with GHC 8.0.2 and new package versions (no API changes)
+
 0.2.1.3 Duncan Coutts <duncan@well-typed.com> May 2015
         * Compatibility with GHC 7.10 (no API changes)
 

@@ -40,7 +40,7 @@ description:         An in-memory full text search engine library. It lets you
                      the library is used in the
                      <http://hackage.haskell.org/package/hackage-server hackage-server>
                      where it provides the backend for the package search feature.
-
+bug-reports:         https://github.com/well-typed/full-text-search/issues
 license:             BSD3
 license-file:        LICENSE
 author:              Duncan Coutts
@@ -53,8 +53,8 @@ cabal-version:       >=1.10
 extra-source-files:  changelog
 
 source-repository head
-  type:              darcs
-  location:          http://code.haskell.org/full-text-search/
+  type:              git
+  location:          git@github.com:well-typed/full-text-search.git
 
 flag build-search-demo
   default:           False
