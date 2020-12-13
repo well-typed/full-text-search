@@ -5,7 +5,7 @@
 -- * A quick overview: <http://en.wikipedia.org/wiki/Okapi_BM25>
 --
 -- * /The Probabilistic Relevance Framework: BM25 and Beyond/
---   <http://www.soi.city.ac.uk/~ser/papers/foundations_bm25_review.pdf>
+--   <http://www.staff.city.ac.uk/~sbrp622/papers/foundations_bm25_review.pdf>
 --
 -- * /An Introduction to Information Retrieval/
 --   <http://nlp.stanford.edu/IR-book/pdf/irbookonlinereading.pdf>
