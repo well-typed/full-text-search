@@ -16,6 +16,7 @@ module Data.SearchEngine.SearchIndex (
     lookupTermId,
     lookupDocId,
     lookupDocKey,
+    lookupDocKeyDocId,
 
     getTerm,
     getDocKey,
@@ -192,6 +193,9 @@ lookupDocKey SearchIndex{docKeyMap, docIdMap} key = do
         case IntMap.lookup (fromEnum docid) docIdMap of
           Nothing                          -> error "lookupDocKey: internal error"
           Just (DocInfo _key doctermids _) -> Just doctermids
+
+lookupDocKeyDocId :: Ord key => SearchIndex key field feature -> key -> Maybe DocId
+lookupDocKeyDocId SearchIndex{docKeyMap} key = Map.lookup key docKeyMap
 
 
 getTerm :: SearchIndex key field feature -> TermId -> Term
