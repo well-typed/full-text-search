@@ -7,6 +7,9 @@ module Data.SearchEngine.Autosuggest (
     queryAutosuggest,
     ResultsFilter(..),
 
+    queryAutosuggestPredicate,
+    queryAutosuggestMatchingDocuments
+
   ) where
 
 import Data.SearchEngine.Types
@@ -112,6 +115,33 @@ queryAutosuggest se resultsFilter precedingTerms partialTerm =
 
     -- Convert from internal Ids into external forms: Term and doc key
     step_external = convertIdsToExternal se
+
+
+-- | Given an incomplete prefix query, find the set of documents that match
+-- possible completions of that query.  This should be less computationally
+-- expensive than 'queryAutosuggest' as it does not do any ranking of documents.
+-- However, it does not apply the pre-filter or post-filter limits, and the list
+-- may be large when the query terms occur in many documents.  The order of
+-- returned keys is unspecified.
+queryAutosuggestMatchingDocuments :: (Ix field, Bounded field, Ord key) =>
+                                     SearchEngine doc key field feature ->
+                                     [Term] -> Term -> [key]
+queryAutosuggestMatchingDocuments se@SearchEngine{searchIndex} precedingTerms partialTerm =
+    let (_, _, ds) = processAutosuggestQuery (mkAutosuggestQuery se precedingTerms partialTerm)
+    in map (SI.getDocKey searchIndex) (DocIdSet.toList ds)
+
+-- | Given an incomplete prefix query, return a predicate that indicates whether
+-- a key is in the set of documents that match possible completions of that
+-- query.  This is equivalent to calling 'queryAutosuggestMatchingDocuments' and
+-- testing whether the key is in the list, but should be more efficient.
+--
+-- This does not apply the pre-filter or post-filter limits.
+queryAutosuggestPredicate :: (Ix field, Bounded field, Ord key) =>
+                             SearchEngine doc key field feature ->
+                             [Term] -> Term -> (key -> Bool)
+queryAutosuggestPredicate se@SearchEngine{searchIndex} precedingTerms partialTerm =
+    let (_, _, ds) = processAutosuggestQuery (mkAutosuggestQuery se precedingTerms partialTerm)
+    in (\ key -> maybe False (flip DocIdSet.member ds) (SI.lookupDocKeyDocId searchIndex key))
 
 
 -- We apply hard limits both before and after filtering.

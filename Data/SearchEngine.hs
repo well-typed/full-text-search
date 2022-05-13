@@ -9,6 +9,8 @@ module Data.SearchEngine (
     -- *** Query auto-completion \/ auto-suggestion
     queryAutosuggest,
     ResultsFilter(..),
+    queryAutosuggestPredicate,
+    queryAutosuggestMatchingDocuments,
 
     -- ** Making a search engine instance
     initSearchEngine,
