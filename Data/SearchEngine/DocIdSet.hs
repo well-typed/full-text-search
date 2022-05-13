@@ -11,6 +11,7 @@ module Data.SearchEngine.DocIdSet (
     toList,
     insert,
     delete,
+    member,
     union,
     unions,
     intersection,
@@ -79,6 +80,9 @@ delete x (DocIdSet vec) =
       (i, True)  -> case Vec.splitAt i vec of
                       (before, after) ->
                         DocIdSet (before Vec.++ Vec.tail after)
+
+member :: DocId -> DocIdSet -> Bool
+member x (DocIdSet vec) = snd (binarySearch vec 0 (Vec.length vec - 1) x)
 
 binarySearch :: Vec.Vector DocId -> Int -> Int -> DocId -> (Int, Bool)
 binarySearch vec !a !b !key
