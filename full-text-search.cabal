@@ -131,6 +131,7 @@ test-suite qc-props
   other-modules:       Test.Data.SearchEngine.TermBag,
                        Test.Data.SearchEngine.DocIdSet,
                        Data.SearchEngine.DocTermIds,
-                       Data.SearchEngine.DocIdSet
+                       Data.SearchEngine.DocIdSet,
+                       Data.SearchEngine.TermBag
   default-language:    Haskell2010
   ghc-options:         -Wall
