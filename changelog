@@ -1,3 +1,7 @@
+0.2.2.0 Adam Gundry <adam@well-typed.com> November 2022
+	* Add queryAutosuggestPredicate and queryAutosuggestMatchingDocuments
+        * Compatibility with GHC 8.10 to 9.4 and new package versions
+
 0.2.1.4 Mikolaj Konarski <mikolaj@well-typed.com> August 2017
         * Compatibility with GHC 8.0.2 and new package versions (no API changes)
 
