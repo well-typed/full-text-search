@@ -62,6 +62,7 @@ source-repository head
 flag build-search-demo
   default:           False
   description:       Build a little program illustrating the use of the library
+  manual:            True
 
 library
   exposed-modules:     Data.SearchEngine,
