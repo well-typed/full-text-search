@@ -508,10 +508,10 @@ scoreAutosuggestQueryCompletions completionTermAndDocSets allTermDocInfo =
     -- term would score highly.
     candidateScore :: TermId -> DocIdSet -> Float
     candidateScore t ds_t =
-      sum [ docImportance * termRelevence
+      sum [ docImportance * termRelevance
           | Just (docImportance, termRelevances) <-
                map (`Map.lookup` allTermDocInfo) (DocIdSet.toList ds_t)
-          , let Just termRelevence = Map.lookup t termRelevances
+          , let termRelevance = termRelevances Map.! t
           ]
 
 
