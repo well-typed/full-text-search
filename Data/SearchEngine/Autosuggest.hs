@@ -72,7 +72,7 @@ queryAutosuggest se resultsFilter precedingTerms partialTerm =
     -- { (t, ds ∩ ds_t) | t ∈ ts, ds ∩ ds_t ≠ ∅ }
     step_process (ts, ds, pre_ts) = (ts', ds', tdss', pre_ts)
       where
-        (tdss', ts', ds') = processAutosuggestQuery (ts, ds, pre_ts)
+        (tdss', ts', ds') = processAutosuggestQuery se (ts, ds, pre_ts)
 
     -- If the number of docs results is huge then we may not want to bother
     -- and just return no results. Even the filtering of a huge number of
@@ -127,7 +127,7 @@ queryAutosuggestMatchingDocuments :: (Ix field, Bounded field, Ord key) =>
                                      SearchEngine doc key field feature ->
                                      [Term] -> Term -> [key]
 queryAutosuggestMatchingDocuments se@SearchEngine{searchIndex} precedingTerms partialTerm =
-    let (_, _, ds) = processAutosuggestQuery (mkAutosuggestQuery se precedingTerms partialTerm)
+    let (_, _, ds) = processAutosuggestQuery se (mkAutosuggestQuery se precedingTerms partialTerm)
     in map (SI.getDocKey searchIndex) (DocIdSet.toList ds)
 
 -- | Given an incomplete prefix query, return a predicate that indicates whether
@@ -140,7 +140,7 @@ queryAutosuggestPredicate :: (Ix field, Bounded field, Ord key) =>
                              SearchEngine doc key field feature ->
                              [Term] -> Term -> (key -> Bool)
 queryAutosuggestPredicate se@SearchEngine{searchIndex} precedingTerms partialTerm =
-    let (_, _, ds) = processAutosuggestQuery (mkAutosuggestQuery se precedingTerms partialTerm)
+    let (_, _, ds) = processAutosuggestQuery se (mkAutosuggestQuery se precedingTerms partialTerm)
     in (\ key -> maybe False (flip DocIdSet.member ds) (SI.lookupDocKeyDocId searchIndex key))
 
 
@@ -207,8 +207,41 @@ mkAutosuggestQuery se@SearchEngine{ searchIndex }
 
     (precedingTerms', precedingDocHits)
       | null precedingTerms = ([], Nothing)
-      | otherwise           = fmap (Just . DocIdSet.unions)
+      | otherwise           = fmap carefulUnions
                                    (lookupRawResults precedingTerms)
+
+    -- For the preceding terms, we compute the union of the sets of documents in
+    -- which they appear.  This means that a query like "Apple Blackberry C"
+    -- will look for documents containing "Apple" or "Blackberry", then later
+    -- intersect that set with documents containing completions of "C".
+    --
+    -- In general we want to use union rather than intersection here, because
+    -- the preceding terms might contain some useful and some missing terms, and
+    -- if we took the intersection we would end up with no results; thus we rely
+    -- on scoring to rank the best matches highest.
+    --
+    -- However, this leads to an issue: if some of the terms are extremely
+    -- common, we might end up taking unions of very large document sets, which
+    -- is a performance disaster.  We address this by unioning only sets smaller
+    -- than the pre-filter limit (but falling back on the whole collection if
+    -- all sets are too large).  This means that:
+    --
+    --  * A query containing a mixture of common and uncommon preceding terms
+    --    will be completed/ranked solely based on the uncommon terms.  For
+    --    example, "Apple Blackberry C" will be equivalent to "Blackberry C" if
+    --    there are many apples.
+    --
+    --  * A query containing only common preceding terms will be
+    --    completed/ranked as if only the final term was present.  For example,
+    --    "Apple Blackberry C" will be equivalent to "C" if there are many
+    --    apples and blackberries.
+    --
+    carefulUnions :: [DocIdSet] -> Maybe DocIdSet
+    carefulUnions dss
+      | null dss' = Nothing
+      | otherwise = Just (DocIdSet.unions dss')
+      where
+        dss' = filter (withinPrefilterLimit se) dss
 
     lookupRawResults :: [Term] -> ([TermId], [DocIdSet])
     lookupRawResults ts =
@@ -234,13 +267,20 @@ mkAutosuggestQuery se@SearchEngine{ searchIndex }
 -- We will do this but additionally we will return all the non-empty
 -- intersections because they will be useful when scoring.
 
-processAutosuggestQuery :: AutosuggestQuery ->
+processAutosuggestQuery :: SearchEngine doc key field feature ->
+                           AutosuggestQuery ->
                            ([(TermId, DocIdSet)], [TermId], DocIdSet)
-processAutosuggestQuery (completionTerms, precedingDocHits, _) =
+processAutosuggestQuery se (completionTerms, precedingDocHits, _)
+  -- Check all the individual document sets are smaller than the pre-filter
+  -- limit.  If any are larger, their union must also be too large, so we return
+  -- no results now rather than having to compute the union (which may be
+  -- expensive) only for it to inevitably hit the limit.
+  | all (withinPrefilterLimit se) docSets =
     ( completionTermAndDocSets
     , completionTerms'
     , allTermDocSet
     )
+  | otherwise = ([], [], DocIdSet.empty)
   where
     -- We look up each candidate completion to find the set of documents
     -- it appears in, and filtering (intersecting) down to just those
@@ -262,12 +302,13 @@ processAutosuggestQuery (completionTerms, precedingDocHits, _) =
       ]
 
     -- The remaining candidate completions
-    completionTerms' = [ w | (w, _ds_w) <- completionTermAndDocSets ]
+    completionTerms' :: [TermId]
+    docSets :: [DocIdSet]
+    (completionTerms', docSets) = unzip completionTermAndDocSets
 
     -- The union of all these is this set of documents that form the results.
     allTermDocSet :: DocIdSet
-    allTermDocSet =
-      DocIdSet.unions [ ds_t | (_t, ds_t) <- completionTermAndDocSets ]
+    allTermDocSet = DocIdSet.unions docSets
 
 
 filterAutosuggestQuery :: SearchEngine doc key field feature ->
