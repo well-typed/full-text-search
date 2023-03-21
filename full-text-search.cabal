@@ -53,7 +53,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 extra-source-files:  changelog
 
-tested-with:         GHC ==8.10.7 || ==9.0.2 || ==9.2.4 || ==9.4.2
+tested-with:         GHC ==8.10.7 || ==9.0.2 || ==9.2.7 || ==9.4.4 || ==9.6.1
 
 source-repository head
   type:              git
