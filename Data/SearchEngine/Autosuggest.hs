@@ -238,6 +238,7 @@ mkAutosuggestQuery se@SearchEngine{ searchIndex }
     --
     carefulUnions :: [DocIdSet] -> Maybe DocIdSet
     carefulUnions dss
+      | null dss  = Just DocIdSet.empty
       | null dss' = Nothing
       | otherwise = Just (DocIdSet.unions dss')
       where
