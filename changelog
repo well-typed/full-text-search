@@ -1,3 +1,6 @@
+0.2.2.2 Adam Gundry <adam@well-typed.com> March 2023
+	* Fix bug in 0.2.2.1 autosuggest patch
+
 0.2.2.1 Adam Gundry <adam@well-typed.com> March 2023
 	* Fix autosuggest query performance bug on large datasets
 
