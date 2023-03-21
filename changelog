@@ -1,3 +1,6 @@
+0.2.2.1 Adam Gundry <adam@well-typed.com> March 2023
+	* Fix autosuggest query performance bug on large datasets
+
 0.2.2.0 Adam Gundry <adam@well-typed.com> November 2022
 	* Add queryAutosuggestPredicate and queryAutosuggestMatchingDocuments
         * Compatibility with GHC 8.10 to 9.4 and new package versions
