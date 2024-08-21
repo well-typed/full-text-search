@@ -1,0 +1,10 @@
+packages: *.cabal
+
+with-compiler: ghc-9.10
+
+constraints:
+  , base == 4.20.*
+  , array == 0.5.*
+  , vector == 0.13.*
+  , containers == 0.7.*
+  , text == 2.1.*

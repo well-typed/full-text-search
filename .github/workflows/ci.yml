@@ -1,0 +1,46 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: master
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  generate-matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.run.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: run
+        run: |
+          function get_matrix () {
+            ls *.project \
+              | sed -n -e 's/\(.*\)\.project/\1/p' \
+              | jq -Rsc '. / "\n" - [""]'
+          }
+          echo "matrix=$(get_matrix)" >> "$GITHUB_OUTPUT"
+  test:
+    runs-on: ubuntu-latest
+    needs: generate-matrix
+    strategy:
+      matrix:
+        configuration: ${{ fromJSON(needs.generate-matrix.outputs.matrix) }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      - id: get-ghc-version
+        run: |
+          function get_ghc_version () {
+            sed -n \
+              -e 's/^with-compiler: *ghc-*\(.*\)$/\1/p' \
+              ${{ matrix.configuration }}.project
+          }
+          echo "ghc-version=$(get_ghc_version)" >> "$GITHUB_OUTPUT"
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: ${{ steps.get-ghc-version.outputs.ghc-version }}
+      - run: |
+          cabal test all --enable-test \
+            --project-file=${{ matrix.configuration }}.project

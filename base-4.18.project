@@ -1,0 +1,6 @@
+packages: *.cabal
+
+with-compiler: ghc-9.6
+
+constraints:
+  , base == 4.18.*
