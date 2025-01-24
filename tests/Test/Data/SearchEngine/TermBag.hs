@@ -1,4 +1,9 @@
-{-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 910
+{-# OPTIONS_GHC -Wno-x-partial #-}
+#endif
+
 module Test.Data.SearchEngine.TermBag where
 
 import Data.SearchEngine.TermBag
@@ -34,8 +39,8 @@ prop_size tids =
 
 prop_termCount :: [TermId] -> Bool
 prop_termCount tids =
-    and [ termCount bag tid == count 
-        | let bag = fromList tids 
+    and [ termCount bag tid == count
+        | let bag = fromList tids
         , (tid, count) <- toList bag
         ]
 
@@ -52,4 +57,4 @@ prop_denseTable2 bags =
               numTerms        = Vec.length terms
         , (b, bag) <- zip [0..] bags
         ,  t       <- [0..Vec.length terms - 1]
-        ] 
+        ]
