@@ -55,7 +55,7 @@ copyright:           2013-2014 Duncan Coutts, 2014 Well-Typed LLP,
                      2014-2023 IRIS Connect Ltd.
 category:            Data, Text, Search
 build-type:          Simple
-extra-source-files:  changelog
+extra-doc-files:     changelog
 
 tested-with:         GHC ==9.2.8 || ==9.4.8 || ==9.6.6 || ==9.8.2 || ==9.10.1
 
