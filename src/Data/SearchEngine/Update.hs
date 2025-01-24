@@ -13,16 +13,16 @@ import Data.SearchEngine.Types
 import qualified Data.SearchEngine.SearchIndex as SI
 import qualified Data.SearchEngine.DocTermIds as DocTermIds
 
+import qualified Data.List as List
 import Data.Ix
 import Data.Array.Unboxed
-import Data.List
 
 
 insertDocs :: (Ord key, Ix field, Bounded field, Ix feature, Bounded feature) =>
               [doc] ->
               SearchEngine doc key field feature ->
               SearchEngine doc key field feature
-insertDocs docs se = foldl' (\se' doc -> insertDoc doc se') se docs
+insertDocs docs se = List.foldl' (\se' doc -> insertDoc doc se') se docs
 
 
 insertDoc :: (Ord key, Ix field, Bounded field, Ix feature, Bounded feature) =>

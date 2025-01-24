@@ -40,7 +40,7 @@ import qualified Data.IntMap as IntMap
 import qualified Data.Set as Set
 import Data.Text (Text)
 import qualified Data.Text as T
-import Data.List (foldl')
+import qualified Data.List as List
 
 import Control.Exception (assert)
 
@@ -333,7 +333,7 @@ docTermIdsTermSet si doctermids =
 --
 
 -- | Add an entry into the 'Term' to 'DocId' mapping.
-insertTermToDocIdEntry :: Term -> DocId -> 
+insertTermToDocIdEntry :: Term -> DocId ->
                           SearchIndex key field feature ->
                           SearchIndex key field feature
 insertTermToDocIdEntry term !docid si@SearchIndex{termMap, termIdMap, nextTermId} =
@@ -362,7 +362,7 @@ insertTermToDocIdEntries :: [Term] -> DocId ->
                             SearchIndex key field feature ->
                             SearchIndex key field feature
 insertTermToDocIdEntries terms !docid si =
-    foldl' (\si' term -> insertTermToDocIdEntry term docid si') si terms
+    List.foldl' (\si' term -> insertTermToDocIdEntry term docid si') si terms
 
 -- | Delete an entry from the 'Term' to 'DocId' mapping.
 deleteTermToDocIdEntry :: Term -> DocId ->
@@ -389,7 +389,7 @@ deleteTermToDocIdEntries :: [Term] -> DocId ->
                             SearchIndex key field feature ->
                             SearchIndex key field feature
 deleteTermToDocIdEntries terms !docid si =
-    foldl' (\si' term -> deleteTermToDocIdEntry term docid si') si terms
+    List.foldl' (\si' term -> deleteTermToDocIdEntry term docid si') si terms
 
 --
 -- The DocId <-> Doc mapping

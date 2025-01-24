@@ -1,5 +1,10 @@
 {-# LANGUAGE BangPatterns, GeneralizedNewtypeDeriving, MultiParamTypeClasses,
              TypeFamilies #-}
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 908
+{-# OPTIONS_GHC -Wno-x-partial #-}
+#endif
+
 module Data.SearchEngine.TermBag (
     TermId(TermId), TermCount,
     TermBag,
@@ -21,7 +26,7 @@ import Control.Monad (liftM)
 import qualified Data.Map as Map
 import Data.Word (Word32, Word8)
 import Data.Bits
-import Data.List (sortBy, foldl')
+import qualified Data.List as List
 import Data.Function (on)
 
 newtype TermId = TermId { unTermId :: Word32 }
@@ -143,10 +148,10 @@ writeMergedTermCounts xs0 ys0 !out i0 =
 --
 unionsTermId :: [TermBag] -> Vec.Vector TermId
 unionsTermId tbs =
-    case sortBy (compare `on` bagVecLength) tbs of
+    case List.sortBy (compare `on` bagVecLength) tbs of
       []             -> Vec.empty
       [TermBag _ xs] -> (Vec.map getTermId xs)
-      (x0:x1:xs)     -> foldl' union3 (union2 x0 x1) xs
+      (x0:x1:xs)     -> List.foldl' union3 (union2 x0 x1) xs
   where
     bagVecLength (TermBag _ vec) = Vec.length vec
 

@@ -26,7 +26,7 @@ import qualified Data.Vector.Generic.Mutable as GMVec
 import Control.Monad.ST
 import Control.Monad (liftM)
 import qualified Data.Set as Set
-import Data.List (foldl', sortBy)
+import qualified Data.List as List
 import Data.Function (on)
 
 import Prelude hiding (null)
@@ -95,9 +95,9 @@ binarySearch vec !a !b !key
           GT -> binarySearch vec (mid+1) b key
 
 unions :: [DocIdSet] -> DocIdSet
-unions = foldl' union empty
+unions = List.foldl' union empty
          -- a bit more effecient if we merge small ones first
-       . sortBy (compare `on` size)
+       . List.sortBy (compare `on` size)
 
 union :: DocIdSet -> DocIdSet -> DocIdSet
 union x y | null x = y
