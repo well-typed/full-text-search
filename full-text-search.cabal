@@ -80,6 +80,7 @@ library
                        Data.SearchEngine.TermBag,
                        Data.SearchEngine.DocTermIds,
                        Data.SearchEngine.DocIdSet
+  hs-source-dirs:      src
   other-extensions:    BangPatterns,
                        NamedFieldPuns,
                        RecordWildCards,
@@ -133,7 +134,7 @@ executable search-demo
 test-suite qc-props
   type:                exitcode-stdio-1.0
   main-is:             Main.hs
-  hs-source-dirs:      . tests
+  hs-source-dirs:      src, tests
   build-depends:       base,
                        array,
                        vector,
