@@ -93,7 +93,7 @@ forEachPartAndWhole parts = do
   case parts t of
     []             -> return ()
     ts             -> forEach (t:ts) >>= put
-  
+
 
 splitDot :: String -> [String]
 splitDot = split (dropBlanks $ dropDelims $ whenElt (=='.'))
@@ -149,7 +149,7 @@ main = do
     let mostFreq :: [String]
         pkgs     :: [PackageDescription]
         (mostFreq, pkgs) = read pkgsFile
-        
+
 --    wordsFile <- T.readFile "/usr/share/dict/words"
 --    let ws = Set.fromList (map T.toLower $ T.lines wordsFile)
 
