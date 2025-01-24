@@ -1,3 +1,7 @@
+0.2.2.3 Ben Gamari <ben@well-typed.com> January 2025
+	* Introduce compatibility with GHCs up to 9.12
+	* Drop compatibility with GHC versions pre-9.2
+
 0.2.2.2 Adam Gundry <adam@well-typed.com> March 2023
 	* Fix bug in 0.2.2.1 autosuggest patch
 
